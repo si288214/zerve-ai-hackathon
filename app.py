@@ -107,7 +107,7 @@ SIGNAL_COLOR = {"BULLISH": "#22c55e", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"
 # ─────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("## 🧲 Ising Stock Predictor")
+    st.markdown("Ising Stock Predictor")
     st.markdown("*Social contagion model for market prediction*")
     st.divider()
 
@@ -176,10 +176,10 @@ st.divider()
 # PHYSICS EXPLAINER (collapsible)
 # ─────────────────────────────────────────────────────────────
 
-with st.expander("📐 Model physics — click to expand", expanded=False):
+with st.expander("Model physics — click to expand", expanded=False):
     st.markdown(r"""
 **Hamiltonian:**
-
+x
 $$H = -J \sum_{\langle i,j \rangle} \sigma_i \sigma_j \;-\; h \sum_i \sigma_i \;+\; D \sum_i \sigma_i^2$$
 
 | Symbol | Meaning | Source |
@@ -597,7 +597,7 @@ else:
         st.metric("🟢 Bullish", bullish)
         st.metric("🔴 Bearish", bearish)
         st.metric("⚪ Neutral", neutral)
-        st.metric("📊 Avg Confidence", f"{avg_conf:.0f}%")
+        st.metric("Avg Confidence", f"{avg_conf:.0f}%")
 
     # ── PREDICTION CARDS ──────────────────────────────────────────────
     st.markdown('<div class="section-header">📊 Stock Predictions</div>',
@@ -675,7 +675,7 @@ else:
 
     # ── EXPORT ───────────────────────────────────────────────────────
     st.divider()
-    with st.expander("📥 Export raw results (JSON)"):
+    with st.expander("Export raw results (JSON)"):
         export_data = [{
             k: v for k, v in r.items() if k != "_model"
         } for r in all_results]
