@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E.W. Research — Ising Event Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#0a0a0a;color:#fff;font-family:'Inter',sans-serif;overflow-x:hidden;}
+
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:28px 56px;display:flex;justify-content:space-between;align-items:center}
+.nav-logo{font-family:'Syne Mono',monospace;font-size:12px;letter-spacing:3px;color:rgba(255,255,255,.7);text-decoration:none}
+.nav-links{display:flex;gap:40px;align-items:center}
+.nav-links a{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:#fff}
+.nav-cta{border:1px solid rgba(255,255,255,.25);padding:10px 24px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.8);text-decoration:none;transition:all .2s}
+.nav-cta:hover{background:#fff;color:#0a0a0a}
+#hero{position:relative;height:100vh;overflow:hidden}
+canvas#ising{position:absolute;inset:0;width:100%;height:100%}
+.hero-content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:56px;pointer-events:none}
+.hero-bottom{display:flex;justify-content:space-between;align-items:flex-end}
+.hero-statement{font-family:'EB Garamond',serif;font-size:clamp(36px,5vw,64px);font-weight:400;line-height:1.05;max-width:560px;letter-spacing:-.5px;opacity:0;transform:translateY(30px);animation:fadeUp 1.2s .3s forwards}
+.hero-right{text-align:right;max-width:320px;opacity:0;animation:fadeUp 1.2s .6s forwards}
+.hero-right hr{border:none;border-top:1px solid rgba(255,255,255,.2);margin-bottom:20px}
+.hero-tagline{font-size:13px;font-weight:300;color:rgba(255,255,255,.8);margin-bottom:12px;letter-spacing:.5px}
+.hero-desc{font-size:12px;color:rgba(255,255,255,.4);line-height:1.8;font-weight:300}
+.hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;animation:fadeIn 1s 1.5s forwards}
+.scroll-line{width:1px;height:48px;background:linear-gradient(to bottom,rgba(255,255,255,.4),transparent);animation:scrollPulse 2s infinite}
+.scroll-label{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.3)}
+#statements{background:#0a0a0a;padding:0 56px}
+.statement-item{padding:80px 0;border-bottom:1px solid rgba(255,255,255,.06);max-width:900px;opacity:.1;transform:translateY(24px);transition:opacity .9s,transform .9s}
+.statement-item.visible{opacity:1;transform:translateY(0)}
+.stmt-num{font-family:'Syne Mono',monospace;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.2);margin-bottom:24px}
+.stmt-text{font-family:'EB Garamond',serif;font-size:clamp(28px,4vw,52px);font-weight:400;line-height:1.15;letter-spacing:-.5px}
+.stmt-text em{font-style:italic;color:rgba(255,255,255,.45)}
+.stmt-sub{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);margin-top:20px;line-height:1.75;max-width:500px}
+#mission{background:#1a1fff;padding:120px 56px}
+.mission-eyebrow{font-family:'Syne Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(255,255,255,.4);margin-bottom:48px;text-transform:uppercase}
+.mission-statement{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,72px);font-weight:800;line-height:1.0;max-width:700px;letter-spacing:-2px;margin-bottom:100px}
+.principles{border-top:1px solid rgba(255,255,255,.2)}
+.principle{border-bottom:1px solid rgba(255,255,255,.12);overflow:hidden}
+.ph{display:flex;align-items:center;padding:20px 0;cursor:pointer;gap:32px}
+.pn{font-family:'Syne Mono',monospace;font-size:11px;color:rgba(255,255,255,.35);letter-spacing:1px;min-width:28px}
+.pt{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:#fff;flex:1;font-weight:400}
+.pp{font-size:20px;color:rgba(255,255,255,.35);transition:transform .35s;font-weight:300;line-height:1}
+.pb{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.pb p{font-size:15px;line-height:1.8;color:rgba(255,255,255,.75);font-weight:300;padding:4px 0 24px 60px;max-width:640px}
+.principle.open .pp{transform:rotate(45deg)}
+.principle.open .pb{max-height:160px}
+#engine{background:#0a0a0a;padding:120px 56px;position:relative;overflow:hidden}
+canvas#ising2{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0.5}
+.eng-eye{font-family:'Syne Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(255,255,255,.25);margin-bottom:20px;text-transform:uppercase}
+.eng-title{font-family:'EB Garamond',serif;font-size:clamp(32px,4vw,56px);font-weight:400;margin-bottom:64px;letter-spacing:-.5px}
+.fw{border:1px solid rgba(255,255,255,.08)}
+.fr{display:grid;border-bottom:1px solid rgba(255,255,255,.06)}
+.fr3{grid-template-columns:1fr 1fr 1fr}
+.fr2{grid-template-columns:2fr 1fr}
+.fc{padding:28px 32px;border-right:1px solid rgba(255,255,255,.06)}
+.fc:last-child{border-right:none}
+.fl{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);text-transform:uppercase;margin-bottom:14px}
+.fi,.fs{width:100%;background:transparent;border:none;outline:none;font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:-.5px;-webkit-appearance:none}
+.fi::placeholder{color:rgba(255,255,255,.1)}
+.fs option{background:#111;font-size:16px}
+.ft{width:100%;background:transparent;border:none;outline:none;font-family:'Inter',sans-serif;font-size:15px;font-weight:300;color:rgba(255,255,255,.6);resize:none;height:56px;line-height:1.6}
+.ft::placeholder{color:rgba(255,255,255,.1)}
+.fbr{display:grid;grid-template-columns:1fr 1fr}
+.br{background:#1a1fff;border:none;padding:24px 40px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;cursor:pointer;transition:background .2s;width:100%}
+.br:hover{background:#0f0fcc}
+.ba{background:transparent;border:none;border-left:1px solid rgba(255,255,255,.06);padding:24px 40px;font-family:'Syne Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.3);cursor:pointer;transition:all .2s;width:100%}
+.ba:hover{color:#fff;background:rgba(255,255,255,.03)}
+#ra{display:none;border-top:1px solid rgba(255,255,255,.06)}
+#ra.v{display:block}
+.ri{padding:56px 40px}
+.rload{font-family:'Syne Mono',monospace;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.25);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:.8}}
+.rg{display:grid;grid-template-columns:1fr auto;gap:64px;align-items:start}
+.rv{font-family:'EB Garamond',serif;font-size:clamp(56px,10vw,120px);font-weight:400;line-height:.9;letter-spacing:-2px}
+.vp{color:#00ff88}.vn{color:#ff2244}.vs{color:#ffcc00;font-size:clamp(36px,6vw,72px)}
+.re{font-family:'Syne Mono',monospace;font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.25);margin-bottom:16px;text-transform:uppercase}
+.rh{font-size:14px;color:rgba(255,255,255,.4);margin-bottom:24px;font-weight:300}
+.pbw{margin-top:20px}
+.pbb{width:280px;height:1px;background:rgba(255,255,255,.1)}
+.pbf{height:100%;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
+.pbl{font-family:'Syne Mono',monospace;font-size:10px;color:rgba(255,255,255,.25);margin-top:10px;letter-spacing:1px}
+.rs{display:flex;flex-direction:column;gap:24px;align-items:flex-end}
+.sv{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1}
+.sl{font-family:'Syne Mono',monospace;font-size:9px;color:rgba(255,255,255,.25);letter-spacing:2px;margin-top:4px}
+.ns{font-family:'Syne Mono',monospace;font-size:10px;color:rgba(255,204,0,.5);letter-spacing:1px;border:1px solid rgba(255,204,0,.15);padding:12px 16px;margin-top:16px;display:inline-block}
+.as{margin-top:80px;padding-top:40px;border-top:1px solid rgba(255,255,255,.06);display:grid;grid-template-columns:repeat(4,1fr)}
+.ai .av{font-family:'Syne',sans-serif;font-size:40px;font-weight:800;letter-spacing:-2px;line-height:1}
+.ai .ab{font-family:'Syne Mono',monospace;font-size:9px;color:rgba(255,255,255,.25);letter-spacing:2px;margin-top:8px;text-transform:uppercase}
+footer{padding:56px;border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center}
+.fl2{font-family:'Syne Mono',monospace;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.25)}
+.fn{font-size:12px;color:rgba(255,255,255,.15);font-weight:300}
+@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{to{opacity:1}}
+@keyframes scrollPulse{0%,100%{opacity:.4}50%{opacity:1}}
+</style>
+</head>
+<body>
+
+
+
+<nav>
+  <a class="nav-logo" href="#">⚛ E.W. RESEARCH</a>
+  <div class="nav-links">
+    <a href="#mission">Model</a>
+    <a href="#engine">Predict</a>
+    <a href="#engine" class="nav-cta">Run Prediction</a>
+  </div>
+</nav>
+
+<section id="hero">
+  <canvas id="ising"></canvas>
+  <div class="hero-content">
+    <div class="hero-bottom">
+      <div class="hero-statement">Simulating market contagion.</div>
+      <div class="hero-right">
+        <hr>
+        <div class="hero-tagline">Predict any event.</div>
+        <div class="hero-desc">A Blume-Capel Ising model on a scale-free investor network. Social sentiment becomes physics. Physics becomes probability.</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <div class="scroll-label">SCROLL</div>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<section id="statements">
+  <div class="statement-item">
+    <div class="stmt-num">01</div>
+    <div class="stmt-text">Markets move like <em>physical systems</em> — not rational ones.</div>
+    <div class="stmt-sub">Investor sentiment propagates through social networks the same way magnetization spreads through a lattice. We model it that way.</div>
+  </div>
+  <div class="statement-item">
+    <div class="stmt-num">02</div>
+    <div class="stmt-text">Headlines encode the <em>external field</em> before the event.</div>
+    <div class="stmt-sub">FinBERT reads what the market reads. We convert it to h ∈ [−1, 1] and let the spin system evolve toward a phase.</div>
+  </div>
+  <div class="statement-item">
+    <div class="stmt-num">03</div>
+    <div class="stmt-text">Below the critical temperature, <em>herds form</em>.</div>
+    <div class="stmt-sub">Phase transitions are predictable. We calibrate β to find where the market currently sits — ordered or disordered — before the print.</div>
+  </div>
+</section>
+
+<section id="mission">
+  <div class="mission-eyebrow">The model</div>
+  <div class="mission-statement">We're building simulation software that predicts market events using a multi-agent Ising approach.</div>
+  <div class="principles">
+    <div class="principle open">
+      <div class="ph" onclick="tog(this)"><span class="pn">01</span><span class="pt">Social contagion over rational expectation</span><span class="pp">+</span></div>
+      <div class="pb"><p>Investors are not independent. Every node in our network feels its neighbors. The Barabási-Albert topology means hub investors drag the herd. This is what actually happens.</p></div>
+    </div>
+    <div class="principle">
+      <div class="ph" onclick="tog(this)"><span class="pn">02</span><span class="pt">Signal, not noise</span><span class="pp">+</span></div>
+      <div class="pb"><p>The model abstains when |h| &lt; 0.15. Weak signal is not a prediction. 85.2% live accuracy comes from calling only when the sentiment field is clear.</p></div>
+    </div>
+    <div class="principle">
+      <div class="ph" onclick="tog(this)"><span class="pn">03</span><span class="pt">Event-type aware</span><span class="pp">+</span></div>
+      <div class="pb"><p>Earnings, Fed, CPI, drug trials, mergers — each has its own keyword filter, polarity, and fusion weights. A biotech PDUFA is not an earnings print.</p></div>
+    </div>
+    <div class="principle">
+      <div class="ph" onclick="tog(this)"><span class="pn">04</span><span class="pt">Built for the edge case</span><span class="pp">+</span></div>
+      <div class="pb"><p>Small-cap tickers with no coverage. Macro events where positive sentiment means hawkish = bearish for rate cuts. The model handles the inversion.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="engine">
+  <canvas id="ising2"></canvas>
+  <div class="eng-eye">Prediction Engine</div>
+  <div class="eng-title">Run the model on any event.</div>
+  <div class="fw">
+    <div class="fr fr3">
+      <div class="fc"><div class="fl">Ticker</div><input class="fi" id="ticker" type="text" placeholder="BSX" maxlength="6" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="fc"><div class="fl">Event Type</div>
+        <select class="fs" id="etype">
+          <option value="earnings">Earnings</option>
+          <option value="fed">Fed Decision</option>
+          <option value="cpi">CPI</option>
+          <option value="drug_trial">Drug Trial</option>
+          <option value="merger" selected>Merger</option>
+        </select>
+      </div>
+      <div class="fc"><div class="fl">Event Date</div><input class="fi" id="edate" type="date" value="2026-05-07" style="color-scheme:dark"></div>
+    </div>
+    <div class="fr fr2">
+      <div class="fc"><div class="fl">Description</div><textarea class="ft" id="desc" placeholder="BSX acquisition of Penumbra — shareholder vote May 2026"></textarea></div>
+      <div class="fc"><div class="fl">Lookback Days</div><input class="fi" id="lookback" type="number" value="14" min="3" max="30"></div>
+    </div>
+    <div class="fbr">
+      <button class="br" onclick="runPred()">Run Prediction →</button>
+      <button class="ba" onclick="autoFill()">✦ Auto-fill from headlines</button>
+    </div>
+    <div id="ra"><div class="ri" id="ri"></div></div>
+  </div>
+  <div class="as">
+    <div class="ai"><div class="av">89.8%</div><div class="ab">Backtest accuracy</div></div>
+    <div class="ai"><div class="av">85.2%</div><div class="ab">Live accuracy n=27</div></div>
+    <div class="ai"><div class="av">+9.4%</div><div class="ab">Lift over baseline</div></div>
+    <div class="ai"><div class="av">0.086</div><div class="ab">Brier score</div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="fl2">⚛ E.W. RESEARCH — ISING EVENT PREDICTOR</div>
+  <div class="fn">Not financial advice. Research purposes only.</div>
+</footer>
+
+<script>
+// scroll-fade
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.15})
+document.querySelectorAll('.statement-item').forEach(el=>obs.observe(el))
+
+// accordion
+function tog(h){
+  const p=h.parentElement,was=p.classList.contains('open')
+  document.querySelectorAll('.principle').forEach(x=>x.classList.remove('open'))
+  if(!was)p.classList.add('open')
+}
+
+const OL={earnings:{1:'BEAT',0:'MISS'},fed:{1:'CUT',0:'HOLD'},cpi:{1:'BELOW',0:'ABOVE'},drug_trial:{1:'APPROVED',0:'REJECTED'},merger:{1:'CLOSES',0:'BREAKS'}}
+
+async function runPred(){
+  const t=document.getElementById('ticker').value.trim().toUpperCase()
+  const et=document.getElementById('etype').value
+  const ed=document.getElementById('edate').value
+  const d=document.getElementById('desc').value||`${t} ${et} ${ed}`
+  const lb=document.getElementById('lookback').value
+  if(!t)return
+  const ra=document.getElementById('ra'),ri=document.getElementById('ri')
+  ra.classList.add('v')
+  ri.innerHTML='<div class="rload">COMPUTING ISING MC SIMULATION...</div>'
+  try{
+    const r=await fetch(`http://localhost:8000/predict?ticker=${t}&type=${et}&date=${ed}&desc=${encodeURIComponent(d)}&lookback=${lb}`)
+    if(!r.ok)throw new Error()
+    const data=await r.json()
+    showResult(data,t,et)
+    if(data.has_signal)window.setSentiment(data.h)
+  }catch(e){showDemo(t,et,ed);window.setSentiment(-0.354)}
+}
+
+function showDemo(t,et,ed){
+  const ri=document.getElementById('ri'),h=-0.354,p=0.195,pct=Math.round(p*100)
+  ri.innerHTML=`<div class="rg"><div><div class="re">${t} · ${et.replace('_',' ').toUpperCase()} · ${ed}</div><div class="rv vn">${OL[et][0]}</div><div class="rh">h = ${h.toFixed(3)}</div><div class="pbw"><div class="pbb"><div class="pbf" id="pb" style="width:0;background:#ff2244"></div></div><div class="pbl">P(positive) = ${pct}%</div></div><div style="font-family:'Syne Mono',monospace;font-size:9px;color:rgba(255,255,255,.12);margin-top:16px;letter-spacing:1px">DEMO — start uvicorn api:app --port 8000 for live data</div></div><div class="rs"><div><div class="sv" style="color:#ff2244">${pct}%</div><div class="sl">Probability</div></div><div><div class="sv">${h.toFixed(3)}</div><div class="sl">Field h</div></div></div></div>`
+  setTimeout(()=>{const b=document.getElementById('pb');if(b)b.style.width=pct+'%'},100)
+}
+
+function showResult(data,t,et){
+  const ri=document.getElementById('ri')
+  if(!data.has_signal){
+    ri.innerHTML=`<div class="rg"><div><div class="re">${t} · ${et.replace('_',' ').toUpperCase()}</div><div class="rv vs">NO SIGNAL</div><div class="rh">h = ${data.h>0?'+':''}${data.h.toFixed(3)}</div><div class="ns">SIGNAL BELOW THRESHOLD — |h| &lt; 0.15</div></div></div>`
+    return
+  }
+  const pos=data.prediction===1,label=OL[et][data.prediction],pct=Math.round(data.probability*100),col=pos?'#00ff88':'#ff2244'
+  ri.innerHTML=`<div class="rg"><div><div class="re">${t} · ${et.replace('_',' ').toUpperCase()} · ${data.event_date||''}</div><div class="rv ${pos?'vp':'vn'}">${label}</div><div class="rh">h = ${data.h>0?'+':''}${data.h.toFixed(3)}</div><div class="pbw"><div class="pbb"><div class="pbf" id="pb" style="width:0;background:${col}"></div></div><div class="pbl">P(positive) = ${pct}%</div></div></div><div class="rs"><div><div class="sv" style="color:${col}">${pct}%</div><div class="sl">Probability</div></div><div><div class="sv">${data.h>0?'+':''}${data.h.toFixed(3)}</div><div class="sl">Field h</div></div><div><div class="sv">${data.magnetization>0?'+':''}${data.magnetization.toFixed(3)}</div><div class="sl">Magnetization</div></div></div></div>`
+  setTimeout(()=>{const b=document.getElementById('pb');if(b)b.style.width=pct+'%'},100)
+}
+
+async function autoFill(){
+  const t=document.getElementById('ticker').value.trim().toUpperCase()
+  const et=document.getElementById('etype').value
+  const ed=document.getElementById('edate').value
+  if(!t)return
+  const btn=document.querySelector('.ba')
+  btn.textContent='⟳ Generating...'
+  try{
+    const r=await fetch(`http://localhost:8000/describe?ticker=${t}&type=${et}&date=${ed}`)
+    if(!r.ok)throw new Error()
+    const data=await r.json()
+    document.getElementById('desc').value=data.description
+  }catch(e){document.getElementById('desc').value=`${t} ${et.replace('_',' ')} ${ed}`}
+  btn.textContent='✦ Auto-fill from headlines'
+}
+
+// ── Ising Network ────────────────────────────────────────────────────────────
+const cv=document.getElementById('ising'),ctx=cv.getContext('2d')
+let W,H,nodes=[],edges=[],adj=[],frame=0,globalH=0,beta=0.32
+
+function resize(){W=cv.width=window.innerWidth;H=cv.height=window.innerHeight}
+resize()
+window.addEventListener('resize',()=>{resize();build()})
+
+function build(){
+  nodes=[];edges=[];adj=[]
+  const N=Math.min(160,Math.floor(W*H/9000)+50)
+  for(let i=0;i<3;i++) nodes.push({id:i,x:W/2+(Math.random()-.5)*300,y:H/2+(Math.random()-.5)*300,spin:[-1,0,1][i],deg:2,vx:0,vy:0})
+  edges.push([0,1],[1,2],[0,2])
+  for(let i=3;i<N;i++){
+    const td=nodes.reduce((s,n)=>s+n.deg,0),tgts=new Set()
+    let att=0
+    while(tgts.size<2&&att++<400){
+      let r=Math.random()*td,c=0
+      for(let j=0;j<nodes.length;j++){c+=nodes[j].deg;if(r<c){tgts.add(j);break}}
+    }
+    nodes.push({id:i,x:Math.random()*W*.85+W*.075,y:Math.random()*H*.85+H*.075,spin:Math.random()<.33?-1:Math.random()<.5?0:1,deg:tgts.size,vx:0,vy:0})
+    tgts.forEach(t=>{edges.push([i,t]);nodes[t].deg++})
+  }
+  const md=Math.max(...nodes.map(n=>n.deg))
+  nodes.forEach(n=>{n.r=3+(n.deg/md)*9;n.inf=n.deg/md})
+  // force layout
+  for(let it=0;it<120;it++){
+    nodes.forEach((a,i)=>{
+      let fx=0,fy=0
+      nodes.forEach((b,j)=>{if(i===j)return;const dx=a.x-b.x,dy=a.y-b.y,d=Math.max(Math.hypot(dx,dy),1),f=3000/(d*d);fx+=dx/d*f;fy+=dy/d*f})
+      edges.forEach(([p,q])=>{const o=p===i?nodes[q]:q===i?nodes[p]:null;if(!o)return;const dx=o.x-a.x,dy=o.y-a.y,d=Math.max(Math.hypot(dx,dy),1),f=(d-100)*.004;fx+=dx/d*f;fy+=dy/d*f})
+      fx+=(W/2-a.x)*.0007;fy+=(H/2-a.y)*.0007
+      a.vx=(a.vx+fx)*.83;a.vy=(a.vy+fy)*.83
+      a.x=Math.max(20,Math.min(W-20,a.x+a.vx));a.y=Math.max(20,Math.min(H-20,a.y+a.vy))
+    })
+  }
+  adj=nodes.map(()=>[])
+  edges.forEach(([i,j])=>{adj[i].push(j);adj[j].push(i)})
+}
+
+function sweep(){
+  const N=nodes.length
+  for(let k=0;k<N;k++){
+    const i=Math.floor(Math.random()*N),n=nodes[i]
+    const ns=[-1,0,1][Math.floor(Math.random()*3)]
+    if(ns===n.spin)continue
+    const nsum=adj[i].reduce((s,j)=>s+nodes[j].spin,0)
+    const heff=globalH*(1+.35*n.inf)
+    const dE=-(ns-n.spin)*nsum-heff*(ns-n.spin)+.25*(ns*ns-n.spin*n.spin)
+    if(dE<=0||Math.random()<Math.exp(-beta*dE))n.spin=ns
+  }
+}
+
+function sc(s,a){
+  if(s===1)return`rgba(40,90,255,${a})`
+  if(s===-1)return`rgba(255,40,70,${a})`
+  return`rgba(130,130,155,${a})`
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H)
+  frame++
+  if(frame%3===0&&adj.length)sweep()
+  edges.forEach(([i,j])=>{
+    const a=nodes[i],b=nodes[j],d=Math.hypot(a.x-b.x,a.y-b.y)
+    if(d>200)return
+    const al=.22*(1-d/200),same=a.spin===b.spin
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)
+    ctx.strokeStyle=same?sc(a.spin,al*2.2):`rgba(110,110,130,${al*.6})`
+    ctx.lineWidth=same?1:.4;ctx.stroke()
+  })
+  nodes.forEach(n=>{
+    if(n.deg>5){ctx.beginPath();ctx.arc(n.x,n.y,n.r+5,0,Math.PI*2);ctx.fillStyle=sc(n.spin,.05);ctx.fill()}
+    ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2)
+    ctx.fillStyle=sc(n.spin,n.spin===0?.35:.82);ctx.fill()
+  })
+  const M=nodes.reduce((s,n)=>s+n.spin,0)/nodes.length
+  ctx.font='10px monospace';ctx.fillStyle='rgba(255,255,255,.18)';ctx.textAlign='right'
+  ctx.fillText(`M=${M>=0?'+':''}${M.toFixed(3)}  h=${globalH>=0?'+':''}${globalH.toFixed(3)}`,W-20,H-20)
+  requestAnimationFrame(draw)
+}
+
+build();draw()
+
+// ── Second Ising canvas (engine section) ─────────────────────────────────────
+const cv2=document.getElementById('ising2'),ctx2=cv2.getContext('2d')
+let nodes2=[],edges2=[],adj2=[],frame2=0
+
+function build2(){
+  nodes2=[];edges2=[];adj2=[]
+  const el=document.getElementById('engine')
+  const W2=el.offsetWidth,H2=el.offsetHeight
+  cv2.width=W2;cv2.height=H2
+  const N=Math.min(120,Math.floor(W2*H2/14000)+40)
+  for(let i=0;i<3;i++) nodes2.push({id:i,x:W2/2+(Math.random()-.5)*200,y:H2/2+(Math.random()-.5)*200,spin:[-1,0,1][i],deg:2,vx:0,vy:0})
+  edges2.push([0,1],[1,2],[0,2])
+  for(let i=3;i<N;i++){
+    const td=nodes2.reduce((s,n)=>s+n.deg,0),tgts=new Set()
+    let att=0
+    while(tgts.size<2&&att++<400){
+      let r=Math.random()*td,c=0
+      for(let j=0;j<nodes2.length;j++){c+=nodes2[j].deg;if(r<c){tgts.add(j);break}}
+    }
+    nodes2.push({id:i,x:Math.random()*W2*.85+W2*.075,y:Math.random()*H2*.85+H2*.075,spin:Math.random()<.33?-1:Math.random()<.5?0:1,deg:tgts.size,vx:0,vy:0})
+    tgts.forEach(t=>{edges2.push([i,t]);nodes2[t].deg++})
+  }
+  const md=Math.max(...nodes2.map(n=>n.deg))
+  nodes2.forEach(n=>{n.r=3+(n.deg/md)*8;n.inf=n.deg/md})
+  for(let it=0;it<120;it++){
+    nodes2.forEach((a,i)=>{
+      let fx=0,fy=0
+      nodes2.forEach((b,j)=>{if(i===j)return;const dx=a.x-b.x,dy=a.y-b.y,d=Math.max(Math.hypot(dx,dy),1),f=1800/(d*d);fx+=dx/d*f;fy+=dy/d*f})
+      edges2.forEach(([p,q])=>{const o=p===i?nodes2[q]:q===i?nodes2[p]:null;if(!o)return;const dx=o.x-a.x,dy=o.y-a.y,d=Math.max(Math.hypot(dx,dy),1),f=(d-60)*.006;fx+=dx/d*f;fy+=dy/d*f})
+      fx+=(W2/2-a.x)*.0007;fy+=(H2/2-a.y)*.0007
+      a.vx=(a.vx+fx)*.83;a.vy=(a.vy+fy)*.83
+      a.x=Math.max(20,Math.min(W2-20,a.x+a.vx));a.y=Math.max(20,Math.min(H2-20,a.y+a.vy))
+    })
+  }
+  adj2=nodes2.map(()=>[])
+  edges2.forEach(([i,j])=>{adj2[i].push(j);adj2[j].push(i)})
+}
+
+function sweep2(){
+  const N=nodes2.length
+  for(let k=0;k<N;k++){
+    const i=Math.floor(Math.random()*N),n=nodes2[i]
+    const ns=[-1,0,1][Math.floor(Math.random()*3)]
+    if(ns===n.spin)continue
+    const nsum=adj2[i].reduce((s,j)=>s+nodes2[j].spin,0)
+    const heff=globalH*(1+.35*n.inf)
+    const dE=-(ns-n.spin)*nsum-heff*(ns-n.spin)+.25*(ns*ns-n.spin*n.spin)
+    if(dE<=0||Math.random()<Math.exp(-beta*dE))n.spin=ns
+  }
+}
+
+function draw2(){
+  const el=document.getElementById('engine')
+  if(cv2.width!==el.offsetWidth){cv2.width=el.offsetWidth;cv2.height=el.offsetHeight}
+  ctx2.clearRect(0,0,cv2.width,cv2.height)
+  frame2++
+  if(frame2%3===0&&adj2.length)sweep2()
+  edges2.forEach(([i,j])=>{
+    const a=nodes2[i],b=nodes2[j],d=Math.hypot(a.x-b.x,a.y-b.y)
+    if(d>200)return
+    const al=.18*(1-d/200),same=a.spin===b.spin
+    ctx2.beginPath();ctx2.moveTo(a.x,a.y);ctx2.lineTo(b.x,b.y)
+    ctx2.strokeStyle=same?sc(a.spin,al*2):`rgba(110,110,130,${al*.5})`
+    ctx2.lineWidth=same?.9:.35;ctx2.stroke()
+  })
+  nodes2.forEach(n=>{
+    if(n.deg>5){ctx2.beginPath();ctx2.arc(n.x,n.y,n.r+4,0,Math.PI*2);ctx2.fillStyle=sc(n.spin,.04);ctx2.fill()}
+    ctx2.beginPath();ctx2.arc(n.x,n.y,n.r,0,Math.PI*2)
+    ctx2.fillStyle=sc(n.spin,n.spin===0?.3:.75);ctx2.fill()
+  })
+  requestAnimationFrame(draw2)
+}
+
+setTimeout(()=>{build2();draw2()},100)
+
+window.setSentiment=h=>{globalH=h}
+</script>
+</body>
+</html>
