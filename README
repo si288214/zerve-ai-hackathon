@@ -1,0 +1,173 @@
+# ⚛ Ising Event Predictor
+### E.W. Research — Zerve AI Hackathon
+
+Binary event prediction (earnings beat/miss, Fed decisions, CPI, drug trials, M&A) using a **Blume-Capel 3-state Ising model** on a scale-free investor network. Social sentiment becomes physics. Physics becomes probability.
+
+**Live accuracy: 85.2% (n=27) | Backtest: 89.8% (n=49) | Brier: 0.086**
+
+---
+
+## How It Works
+
+1. **Finnhub** fetches recent news headlines for a ticker
+2. **FinBERT** scores headlines for sentiment → external field `h ∈ [-1, 1]`
+3. **Blume-Capel Ising MC** simulation runs with `h` as the external field on a Barabási-Albert scale-free investor network
+4. Magnetization `M` maps to `P(positive outcome)`
+5. If `|h| < 0.18`, the model abstains — insufficient signal
+
+---
+
+## Setup
+
+### 1. Clone and create virtual environment
+```bash
+git clone https://github.com/si288214/zerve-ai-hackathon.git
+cd zerve-ai-hackathon
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Install additional dependencies
+```bash
+pip install fastapi uvicorn transformers torch finnhub-python plotly streamlit
+```
+
+### 3. Set environment variables
+Create a `.env` file in the project root (never commit this):
+```
+FINNHUB_KEY=your_finnhub_key
+ALPHA_VANTAGE_KEY=your_alpha_vantage_key
+GROQ_API_KEY=your_groq_key
+```
+
+Get free API keys:
+- **Finnhub**: [finnhub.io](https://finnhub.io) — 60 req/min, full historical data
+- **Alpha Vantage**: [alphavantage.co](https://www.alphavantage.co) — options data (premium endpoint)
+- **Groq**: [console.groq.com](https://console.groq.com) — free LLM for auto-descriptions
+
+---
+
+## Running the App
+
+You need two terminal tabs running simultaneously.
+
+### Terminal 1 — FastAPI backend (powers the landing page)
+```bash
+source venv/bin/activate
+uvicorn api:app --port 8000 --reload
+```
+
+### Terminal 2 — Streamlit dashboard (predict + track outcomes)
+```bash
+source venv/bin/activate
+streamlit run event_app.py
+```
+
+### Landing page
+Open `landing.html` directly in your browser. It calls the FastAPI backend at `localhost:8000`.
+
+---
+
+## Making a Prediction (terminal)
+
+```bash
+python3 -c "
+from sentiment_engine import compute_h
+from event_backtest_v2 import ising_predict, CFG
+
+OUTCOME_LABELS = {
+    'earnings':   {1: 'BEAT',        0: 'MISS'},
+    'fed':        {1: 'CUT',         0: 'HOLD/HIKE'},
+    'cpi':        {1: 'BELOW EST',   0: 'ABOVE EST'},
+    'drug_trial': {1: 'APPROVED',    0: 'REJECTED'},
+    'merger':     {1: 'DEAL CLOSES', 0: 'DEAL BREAKS'},
+}
+
+event = {
+    'ticker': 'AAPL',
+    'date':   '2026-04-30',
+    'type':   'earnings',
+    'desc':   'AAPL Q2 FY26 earnings',
+}
+
+h, bd = compute_h(event, lookback_days=14)
+if not bd.get('sources_used'):
+    print('NO PREDICTION — signal below threshold')
+else:
+    pred = ising_predict(h, CFG)
+    label = OUTCOME_LABELS[event['type']][pred['prediction']]
+    print(f'h={h:+.3f}  P={pred[\"probability\"]:.3f}  → {label}')
+"
+```
+
+---
+
+## Running the Backtest
+
+```bash
+python3 1.py
+```
+
+Runs predictions on 49 historical events (2024 earnings, Fed decisions, CPI, drug trials, mergers) using preset `h` values. Generates `event_backtest_results.png`.
+
+---
+
+## Project Structure
+
+```
+├── sentiment_engine.py     # h computation: Finnhub + FinBERT + sector dampening
+├── ising_model.py          # Blume-Capel 3-state Ising MC simulation
+├── event_backtest_v2.py    # Backtest runner + ising_predict()
+├── event_types.py          # Event registry, preset h values, drug/merger schemas
+├── api.py                  # FastAPI REST API (/predict, /describe, /health)
+├── event_app.py            # Streamlit app (Predict + Dashboard pages)
+├── landing.html            # Public landing page with live Ising network viz
+├── app.py                  # Original stock signal app (Google Trends + yfinance)
+├── data_fetcher.py         # yfinance + Google Trends pipeline
+├── backtest.py             # Original signal backtest
+├── betaOptimizer.py        # Beta calibration tool
+└── requirements.txt
+```
+
+---
+
+## Model Parameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `β` | 0.3 | Inverse temperature (calibrated via Brier score sweep) |
+| `N` | 120 | Number of investors in network |
+| `D` | 0.25 | Single-ion anisotropy (cost of taking a position) |
+| `J` | 1.0 | Coupling constant (peer influence strength) |
+| `n_equil` | 150 | MC equilibration sweeps |
+| `n_samples` | 40 | Production samples |
+| Threshold | 0.18 | Min `\|h\|` to make a prediction |
+
+---
+
+## Supported Event Types
+
+| Type | Outcome | Signal |
+|------|---------|--------|
+| `earnings` | Beat / Miss | FinBERT on earnings headlines |
+| `fed` | Cut / Hold/Hike | FinBERT on macro headlines (inverted polarity) |
+| `cpi` | Below / Above est | FinBERT on inflation headlines (inverted) |
+| `drug_trial` | Approved / Rejected | FinBERT on FDA/trial headlines |
+| `merger` | Deal closes / breaks | FinBERT on M&A headlines |
+
+---
+
+## API Endpoints
+
+With `uvicorn api:app --port 8000` running:
+
+```
+GET /health
+GET /predict?ticker=BSX&type=merger&date=2026-05-07&desc=...&lookback=14
+GET /describe?ticker=BSX&type=merger&date=2026-05-07
+```
+
+---
+
+*Not financial advice. Model output for research purposes only.*
